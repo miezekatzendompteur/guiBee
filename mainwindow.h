@@ -27,8 +27,7 @@ QT_END_NAMESPACE
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
-
+    const QString programName = "BeeGui 1V0";
 
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -47,16 +46,24 @@ private:
     QChartView *chartView;
     QString demoName;
     QString fileName {};
+    QComboBox* comboBox;
+    QList<QString> interfaceList;
+    QString interfaceValue;
 
     lastData* getLastData();
     void setLastData(uint, uint, uint);
 
 private slots:
-    void on_startButton_clicked();
     void setEditText(const QByteArray &);
-    void on_stopButton_clicked();
-    void on_fileDialog_clicked();
     void realtimeDataSlot();
+    void on_actionFile_triggered();
+    void on_actionStart_triggered();
+    void setInterface(int);
+    void on_actionStop_triggered();
+
+    void on_actionFind_Interface_triggered();
+
+    void on_actionInfo_triggered();
 
 private:
     Ui::MainWindow *ui;

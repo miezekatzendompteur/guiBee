@@ -12,6 +12,7 @@ class mySave : public QObject
     QString m_string;
 public:
     explicit mySave(const QString &stringFileName = QString(), QObject *parent = nullptr);
+    ~mySave();
 
 private:
     QFile file;

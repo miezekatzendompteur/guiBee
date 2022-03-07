@@ -10,11 +10,11 @@ class myThread : public QObject
     Q_OBJECT
     QSerialPort *myPort;
 public:
-    explicit myThread(QObject *parent = nullptr);
+    explicit myThread(const QString &interfaceName = QString(), QObject *parent = nullptr);
+    ~myThread();
 
 
 public slots:
-    void interfaceSerial();
     void closeInterface();
     void readData();
 

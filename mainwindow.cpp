@@ -6,6 +6,12 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QChartView>
+#include <QSerialPortInfo>
+
+/********************** toDo ***************************
+- FileConstructor
+- StartFile
+*/
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -16,12 +22,17 @@ MainWindow::MainWindow(QWidget *parent)
     this->setupRealtimeDataDemo(ui->customPlot);
     fileName = NULL;
 
+    comboBox = new QComboBox;
+    connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setInterface(int)));
+
 }
 
 MainWindow::~MainWindow()
 {
-    QMetaObject::invokeMethod(mThread, "closeInterface");
-    QMetaObject::invokeMethod(mSave, "closeFile");
+//    QMetaObject::invokeMethod(mThread, "closeInterface");
+//    QMetaObject::invokeMethod(mSave, "closeFile");
+
+//    qDebug() << "Close File & Interface";
 
     thread->quit();
     thread->wait();
@@ -32,42 +43,6 @@ MainWindow::~MainWindow()
     delete threadSave;
     delete mSave;
     delete ui;
-}
-
-
-void MainWindow::on_startButton_clicked()
-{
-    thread = new QThread();
-    mThread = new myThread();
-    threadSave = new QThread();
-    mSave = new mySave(fileName);
-
-    //connect(thread, SIGNAL(finished()), mThread, SLOT(deleteLater()));
-    //connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-
-    connect(mThread, SIGNAL(emitData(const QByteArray &)), this, SLOT(setEditText(const QByteArray &)));
-
-    mThread->moveToThread(thread);
-    thread->start();
-
-    mSave->moveToThread(threadSave);
-    threadSave->start();
-
-    QMetaObject::invokeMethod(mThread, "interfaceSerial");
-
-    QMetaObject::invokeMethod(mSave, "startFile", Q_ARG(QString, fileName));
-
-    qDebug() << "Main open " << QThread::currentThread();
-
-    dataTimer.start(0); // Interval 0 means to refresh as fast as possible
-}
-
-
-void MainWindow::on_stopButton_clicked()
-{
-    QMetaObject::invokeMethod(mThread, "closeInterface");
-    QMetaObject::invokeMethod(mSave, "closeFile");
-    dataTimer.stop();
 }
 
 
@@ -137,13 +112,6 @@ lastData* MainWindow::getLastData(){
     return arrayLastData;
 }
 
-
-void MainWindow::on_fileDialog_clicked()
-{
-    fileName = QFileDialog::getSaveFileName(this,
-        tr("Save Values"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation), tr("Text files (*.txt)"));
-    qDebug() << fileName;
-}
 
 void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
 {
@@ -220,3 +188,99 @@ void MainWindow::realtimeDataSlot()
     frameCount = 0;
   }
 }
+
+void MainWindow::on_actionFile_triggered()
+{
+    fileName = QFileDialog::getSaveFileName(this,
+        tr("Save Values"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation), tr("Text files (*.txt)"));
+    qDebug() << fileName;
+}
+
+
+void MainWindow::on_actionStart_triggered()
+{
+    thread = new QThread();
+    mThread = new myThread(interfaceValue);
+    threadSave = new QThread();
+    mSave = new mySave(fileName);
+
+    //connect(thread, SIGNAL(finished()), mThread, SLOT(deleteLater()));
+    //connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+
+    connect(mThread, SIGNAL(emitData(const QByteArray &)), this, SLOT(setEditText(const QByteArray &)));
+
+    mThread->moveToThread(thread);
+    thread->start();
+
+    mSave->moveToThread(threadSave);
+    threadSave->start();
+
+//    QMetaObject::invokeMethod(mThread, "startInterface");
+
+    QMetaObject::invokeMethod(mSave, "startFile", Q_ARG(QString, fileName));
+
+    qDebug() << "Main open " << QThread::currentThread() << " InterfaceName: " << interfaceValue;
+
+    dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+}
+
+
+void MainWindow::on_actionStop_triggered()
+{
+    QMetaObject::invokeMethod(mThread, "closeInterface");
+    QMetaObject::invokeMethod(mSave, "closeFile");
+    dataTimer.stop();
+}
+
+
+void MainWindow::on_actionFind_Interface_triggered()
+{
+    ui->toolBar->addWidget(comboBox);
+    comboBox->clear();
+
+    const QList<QSerialPortInfo> infos = QSerialPortInfo::availablePorts();
+    for (const QSerialPortInfo &info : infos){
+        if (info.vendorIdentifier() == 0x04B4 && info.productIdentifier() == 0xF139){
+            qDebug() << "SystemLocation" << info.systemLocation();
+            interfaceList.append(info.systemLocation());
+            comboBox->addItem(info.portName());
+        }
+//        QString s = QObject::tr("Port: ") + info.portName() + "\n"
+//                    + QObject::tr("Location: ") + info.systemLocation() + "\n"
+//                    + QObject::tr("Description: ") + info.description() + "\n"
+//                    + QObject::tr("Manufacturer: ") + info.manufacturer() + "\n"
+//                    + QObject::tr("Serial number: ") + info.serialNumber() + "\n"
+//                    + QObject::tr("Vendor Identifier: ") + (info.hasVendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : QString()) + "\n"
+//                    + QObject::tr("Product Identifier: ") + (info.hasProductIdentifier() ? QString::number(info.productIdentifier(), 16) : QString()) + "\n";
+//        qDebug() << s;
+
+//        comboBox->addItem(info.portName());
+    }
+}
+
+
+
+
+void MainWindow::on_actionInfo_triggered()
+{
+    QMessageBox::information(this, tr(programName.toStdString().c_str()),
+                                   tr("Contact me: "
+                                      "johann.schmid@ur.de"),
+                                   QMessageBox::Ok);
+
+}
+
+void MainWindow::setInterface(int currentIndex){
+    qDebug() << currentIndex;
+    qDebug() << interfaceList.value(currentIndex);
+    if (currentIndex > -1){
+        interfaceValue = interfaceList.value(currentIndex);
+        ui->actionStart->setEnabled(true);
+    }
+    else
+    {
+        ui->actionStart->setEnabled(false);
+    }
+
+}
+

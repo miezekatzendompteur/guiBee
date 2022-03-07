@@ -8,6 +8,12 @@ mySave::mySave(const QString &stringFileName, QObject *parent)
     qDebug() << "Thread open " << QThread::currentThread()  << stringFileName;
 }
 
+mySave::~mySave(){
+    file.flush();
+    file.close();
+    qDebug() << "File close";
+}
+
 void mySave::startFile(QString fileName){
     file.setFileName(fileName);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))

@@ -27,31 +27,6 @@
      <item>
       <widget class="QTextEdit" name="textEdit"/>
      </item>
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QPushButton" name="fileDialog">
-         <property name="text">
-          <string>File</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="startButton">
-         <property name="text">
-          <string>Start</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="stopButton">
-         <property name="text">
-          <string>Stop</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
     </layout>
    </widget>
    <widget class="QCustomPlot" name="customPlot" native="true">
@@ -74,8 +49,95 @@
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuAdjustment">
+    <property name="title">
+     <string>Adjustment</string>
+    </property>
+    <addaction name="actionFile"/>
+    <addaction name="actionFind_Interface"/>
+    <addaction name="actionStart"/>
+    <addaction name="actionStop"/>
+    <addaction name="actionInfo"/>
+   </widget>
+   <addaction name="menuAdjustment"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionFind_Interface"/>
+   <addaction name="actionFile"/>
+   <addaction name="actionStart"/>
+   <addaction name="actionStop"/>
+   <addaction name="actionInfo"/>
+  </widget>
+  <action name="actionFile">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/rec/img/file.ico</normaloff>:/rec/img/file.ico</iconset>
+   </property>
+   <property name="text">
+    <string>File</string>
+   </property>
+  </action>
+  <action name="actionFind_Interface">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/rec/img/usb.ico</normaloff>:/rec/img/usb.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Interface</string>
+   </property>
+  </action>
+  <action name="actionStart">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/rec/img/start.ico</normaloff>:/rec/img/start.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/rec/img/stop.ico</normaloff>:/rec/img/stop.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionInfo">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/rec/img/bee.ico</normaloff>:/rec/img/bee.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Info</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -85,6 +147,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
 </ui>
