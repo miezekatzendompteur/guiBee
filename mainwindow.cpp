@@ -7,12 +7,7 @@
 #include <QStandardPaths>
 #include <QChartView>
 #include <QSerialPortInfo>
-
-/********************** toDo ***************************
-- FileConstructor
-- StartFile
-*/
-
+#include <QApplication>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -20,28 +15,36 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     this->setupRealtimeDataDemo(ui->customPlot);
-    fileName = NULL;
 
-    comboBox = new QComboBox;
+    comboBox = new QComboBox();
     connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setInterface(int)));
+
+    thread = new QThread();
+    mThread = new myThread();
+    threadSave = new QThread();
+    mSave = new mySave();
 
 }
 
 MainWindow::~MainWindow()
 {
-//    QMetaObject::invokeMethod(mThread, "closeInterface");
-//    QMetaObject::invokeMethod(mSave, "closeFile");
+    if (thread->isRunning()){
+        thread->quit();
+        thread->wait();
+        delete thread;
+        delete mThread;
+        qDebug() << "Thread is running: " << thread->isRunning();
+    }
 
-//    qDebug() << "Close File & Interface";
+    if (threadSave->isRunning()){
+        threadSave->quit();
+        threadSave->wait();
+        delete threadSave;
+        delete mSave;
+        qDebug() << "ThreadSave is running: " << threadSave->isRunning();
+    }
 
-    thread->quit();
-    thread->wait();
-    threadSave->quit();
-    threadSave->wait();
-    delete thread;
-    delete mThread;
-    delete threadSave;
-    delete mSave;
+    qDebug() << "Thread closed";
     delete ui;
 }
 
@@ -78,11 +81,7 @@ void MainWindow::setEditText(const QByteArray &text){
     }
 
     qDebug() << stringList;
-//    series->append(9, 1);
-//    series->append(9, 0);
-//    series->append(15, 0);
-//    series->append(15, 1);
-//    series->clear();
+
 }
 
 void MainWindow::setLastData(uint channel, uint time, uint boValue){
@@ -108,9 +107,6 @@ void MainWindow::setLastData(uint channel, uint time, uint boValue){
     }
 }
 
-lastData* MainWindow::getLastData(){
-    return arrayLastData;
-}
 
 
 void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
@@ -154,16 +150,15 @@ void MainWindow::realtimeDataSlot()
   // calculate two new data points:
   double key = timeStart.msecsTo(QTime::currentTime())/1000.0; // time elapsed since start of demo, in seconds
   static double lastPointKey = 0;
-  lastData* returnLastData;
-  returnLastData = getLastData();
+
   //qDebug()<< returnLastData[0].boValue << ";" << returnLastData[1].boValue << ";" << returnLastData[2].boValue << ";" << returnLastData[3].boValue;
 
   if (key-lastPointKey > 0.002)
   {
-      ui->customPlot->graph(0)->addData(key, returnLastData[0].boValue);
-      ui->customPlot->graph(1)->addData(key, returnLastData[1].boValue + 1.1);
-      ui->customPlot->graph(2)->addData(key, returnLastData[2].boValue + 2.2);
-      ui->customPlot->graph(3)->addData(key, returnLastData[3].boValue + 3.3);
+      ui->customPlot->graph(0)->addData(key, arrayLastData[0].boValue);
+      ui->customPlot->graph(1)->addData(key, arrayLastData[1].boValue + 1.1);
+      ui->customPlot->graph(2)->addData(key, arrayLastData[2].boValue + 2.2);
+      ui->customPlot->graph(3)->addData(key, arrayLastData[3].boValue + 3.3);
       //qDebug() << arrayLastData[0].boValue << ";" << arrayLastData[1].boValue << ";" << arrayLastData[2].boValue << ";" << arrayLastData[3].boValue;
       lastPointKey = key;
   }
@@ -192,22 +187,27 @@ void MainWindow::realtimeDataSlot()
 void MainWindow::on_actionFile_triggered()
 {
     fileName = QFileDialog::getSaveFileName(this,
-        tr("Save Values"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation), tr("Text files (*.txt)"));
+        tr("Save Values"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + QDateTime::currentDateTime().toString("yyyy_MM_dd_hh-mm-ss"), tr("Text files (*.txt)"));
     qDebug() << fileName;
+
+    if (fileName != nullptr){
+        ui->actionFind_Interface->setEnabled(true);
+    }
+    else
+    {
+        ui->actionFind_Interface->setEnabled(false);
+    }
 }
 
 
 void MainWindow::on_actionStart_triggered()
 {
-    thread = new QThread();
-    mThread = new myThread(interfaceValue);
-    threadSave = new QThread();
-    mSave = new mySave(fileName);
+//    connect(thread, SIGNAL(finished()), mThread, SLOT(deleteLater()));
+//    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    qDebug() << thread;
+    qDebug() << mThread;
 
-    //connect(thread, SIGNAL(finished()), mThread, SLOT(deleteLater()));
-    //connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-
-    connect(mThread, SIGNAL(emitData(const QByteArray &)), this, SLOT(setEditText(const QByteArray &)));
+    connect(mThread, SIGNAL(emitData(QByteArray)), this, SLOT(setEditText(QByteArray)));
 
     mThread->moveToThread(thread);
     thread->start();
@@ -215,9 +215,9 @@ void MainWindow::on_actionStart_triggered()
     mSave->moveToThread(threadSave);
     threadSave->start();
 
-//    QMetaObject::invokeMethod(mThread, "startInterface");
+    QMetaObject::invokeMethod(mThread, "setInterfaceName", Q_ARG(QString, interfaceValue));
 
-    QMetaObject::invokeMethod(mSave, "startFile", Q_ARG(QString, fileName));
+    QMetaObject::invokeMethod(mSave, "setFile", Q_ARG(QString, fileName));
 
     qDebug() << "Main open " << QThread::currentThread() << " InterfaceName: " << interfaceValue;
 
@@ -235,6 +235,7 @@ void MainWindow::on_actionStop_triggered()
 
 void MainWindow::on_actionFind_Interface_triggered()
 {
+
     ui->toolBar->addWidget(comboBox);
     comboBox->clear();
 
@@ -245,16 +246,7 @@ void MainWindow::on_actionFind_Interface_triggered()
             interfaceList.append(info.systemLocation());
             comboBox->addItem(info.portName());
         }
-//        QString s = QObject::tr("Port: ") + info.portName() + "\n"
-//                    + QObject::tr("Location: ") + info.systemLocation() + "\n"
-//                    + QObject::tr("Description: ") + info.description() + "\n"
-//                    + QObject::tr("Manufacturer: ") + info.manufacturer() + "\n"
-//                    + QObject::tr("Serial number: ") + info.serialNumber() + "\n"
-//                    + QObject::tr("Vendor Identifier: ") + (info.hasVendorIdentifier() ? QString::number(info.vendorIdentifier(), 16) : QString()) + "\n"
-//                    + QObject::tr("Product Identifier: ") + (info.hasProductIdentifier() ? QString::number(info.productIdentifier(), 16) : QString()) + "\n";
-//        qDebug() << s;
 
-//        comboBox->addItem(info.portName());
     }
 }
 
@@ -263,7 +255,7 @@ void MainWindow::on_actionFind_Interface_triggered()
 
 void MainWindow::on_actionInfo_triggered()
 {
-    QMessageBox::information(this, tr(programName.toStdString().c_str()),
+    QMessageBox::information(this, tr("BeeGui 1V0"),
                                    tr("Contact me: "
                                       "johann.schmid@ur.de"),
                                    QMessageBox::Ok);
@@ -273,7 +265,7 @@ void MainWindow::on_actionInfo_triggered()
 void MainWindow::setInterface(int currentIndex){
     qDebug() << currentIndex;
     qDebug() << interfaceList.value(currentIndex);
-    if (currentIndex > -1){
+    if (currentIndex > -1 && fileName != nullptr){
         interfaceValue = interfaceList.value(currentIndex);
         ui->actionStart->setEnabled(true);
     }
@@ -284,3 +276,8 @@ void MainWindow::setInterface(int currentIndex){
 
 }
 
+
+void MainWindow::on_actionExit_triggered()
+{
+    QApplication::exit();
+}
