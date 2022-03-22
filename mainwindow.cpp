@@ -44,7 +44,7 @@ MainWindow::~MainWindow()
         qDebug() << "ThreadSave is running: " << threadSave->isRunning();
     }
 
-    qDebug() << "Thread closed";
+    qDebug() << "Thread closed" << thread->isRunning() << ":" << threadSave->isFinished();
     delete ui;
 }
 
@@ -209,17 +209,18 @@ void MainWindow::on_actionStart_triggered()
 
     connect(mThread, SIGNAL(emitData(QByteArray)), this, SLOT(setEditText(QByteArray)));
 
-    mThread->moveToThread(thread);
-    thread->start();
+    if (thread->isRunning() == false){
+        mThread->moveToThread(thread);
+        thread->start();
+    }
 
-    mSave->moveToThread(threadSave);
-    threadSave->start();
+    if (threadSave->isRunning() == false){
+        mSave->moveToThread(threadSave);
+        threadSave->start();
+    }
 
     QMetaObject::invokeMethod(mThread, "setInterfaceName", Q_ARG(QString, interfaceValue));
-
     QMetaObject::invokeMethod(mSave, "setFile", Q_ARG(QString, fileName));
-
-    qDebug() << "Main open " << QThread::currentThread() << " InterfaceName: " << interfaceValue;
 
     dataTimer.start(0); // Interval 0 means to refresh as fast as possible
 }
@@ -227,8 +228,14 @@ void MainWindow::on_actionStart_triggered()
 
 void MainWindow::on_actionStop_triggered()
 {
-    QMetaObject::invokeMethod(mThread, "closeInterface");
-    QMetaObject::invokeMethod(mSave, "closeFile");
+    if (thread->isRunning()){
+        QMetaObject::invokeMethod(mThread, "closeInterface");
+    }
+
+    if (threadSave->isRunning()){
+        QMetaObject::invokeMethod(mSave, "closeFile");
+    }
+    disconnect(mThread, SIGNAL(emitData(QByteArray)), this, SLOT(setEditText(QByteArray)));
     dataTimer.stop();
 }
 
